@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Ledger — Multi-Shop</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F6EFE4; --surface:#FFFDF8; --surface-2:#EFE4D2;
+    --ink:#2B211A; --muted:#8C7F6E; --leather:#8A4B32; --leather-dark:#6E3A27;
+    --gold:#A9791F; --good:#4C6B4F; --danger:#A23B2E; --line:#DED0B8; --radius:4px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:'Inter',system-ui,sans-serif;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased;min-height:100vh;padding-bottom:72px;}
+  h1,h2,h3,.display{font-family:'Fraunces',serif;font-weight:600;letter-spacing:-0.01em;margin:0;}
+  .hidden{display:none !important;}
+  button{font-family:inherit;cursor:pointer;}
+  input,select{font-family:inherit;}
+  #auth-screen{min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:32px 24px;max-width:420px;margin:0 auto;}
+  .brand{display:flex;align-items:baseline;gap:10px;margin-bottom:6px;}
+  .brand .mark{width:34px;height:34px;background:var(--leather);border-radius:8px 8px 8px 0;flex-shrink:0;position:relative;}
+  .brand .mark::after{content:'';position:absolute;left:8px;top:9px;width:18px;height:2px;background:var(--gold);box-shadow:0 5px 0 var(--gold), 0 10px 0 var(--gold);}
+  .brand h1{font-size:26px;}
+  .tagline{color:var(--muted);font-size:14px;margin:0 0 32px 44px;}
+  .tabs{display:flex;border-bottom:1px solid var(--line);margin-bottom:24px;}
+  .tab-btn{flex:1;background:none;border:none;padding:12px 0;font-size:14px;font-weight:600;color:var(--muted);border-bottom:2px solid transparent;}
+  .tab-btn.active{color:var(--leather);border-bottom-color:var(--leather);}
+  .field{margin-bottom:16px;}
+  .field label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px;}
+  .field input,.field select{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);font-size:15px;color:var(--ink);}
+  .field input:focus{outline:2px solid var(--leather);outline-offset:1px;}
+  .btn-primary{width:100%;background:var(--leather);color:#fff;border:none;padding:14px;border-radius:var(--radius);font-size:15px;font-weight:600;margin-top:4px;}
+  .btn-primary:active{background:var(--leather-dark);}
+  .btn-primary:disabled{opacity:0.5;}
+  .btn-secondary{background:var(--surface-2);color:var(--ink);border:1px solid var(--line);padding:12px;border-radius:var(--radius);font-size:14px;font-weight:600;width:100%;}
+  .auth-error{background:#FBEAE7;color:var(--danger);font-size:13px;padding:10px 12px;border-radius:var(--radius);margin-bottom:16px;white-space:pre-line;line-height:1.5;}
+  .auth-note{font-size:12px;color:var(--muted);margin-top:16px;line-height:1.5;}
+  #app-screen{max-width:640px;margin:0 auto;}
+  header.top{background:var(--leather);color:#fff;padding:18px 20px 22px;border-radius:0 0 16px 16px;}
+  header.top .row1{display:flex;justify-content:space-between;align-items:center;}
+  header.top .who{font-size:12px;opacity:0.85;}
+  header.top h2{font-size:22px;color:#fff;margin-top:2px;}
+  .signout{background:rgba(255,255,255,0.15);border:none;color:#fff;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600;}
+  main{padding:16px;}
+  .section-title{font-size:13px;font-weight:600;color:var(--muted);margin:24px 0 10px;}
+  .section-title:first-child{margin-top:0;}
+  .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:-34px;}
+  .stat-card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;}
+  .stat-card .num{font-family:'Fraunces',serif;font-size:24px;font-weight:600;}
+  .stat-card .lbl{font-size:12px;color:var(--muted);margin-top:2px;}
+  .stat-card.profit .num{color:var(--good);}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:12px;}
+  .card h3{font-size:16px;margin-bottom:14px;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  th{text-align:left;font-size:11px;font-weight:600;color:var(--muted);padding:0 8px 8px 0;border-bottom:1px solid var(--line);}
+  td{padding:10px 8px 10px 0;border-bottom:1px solid var(--line);}
+  tr:last-child td{border-bottom:none;}
+  .num-col{text-align:right;}
+  .low-stock{color:var(--danger);font-weight:600;}
+  .empty{text-align:center;color:var(--muted);font-size:13px;padding:24px 12px;}
+  .link-btn{background:none;border:none;color:var(--leather);font-size:12px;font-weight:600;padding:2px 4px;text-decoration:underline;}
+  .link-btn.danger{color:var(--danger);}
+  .product-pick{border:1px solid var(--line);border-radius:var(--radius);padding:12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;background:var(--surface);}
+  .product-pick .pname{font-weight:600;font-size:14px;}
+  .product-pick .pmeta{font-size:12px;color:var(--muted);}
+  .product-pick.selected{border-color:var(--leather);background:#FBF3E8;}
+  .search-row{display:flex;gap:8px;margin-bottom:14px;}
+  .search-row input{flex:1;}
+  .code-box{background:var(--surface-2);border:1px dashed var(--leather);border-radius:var(--radius);padding:14px;text-align:center;margin-bottom:12px;}
+  .code-box .code{font-family:'Fraunces',serif;font-size:22px;letter-spacing:2px;color:var(--leather-dark);}
+  .code-box .cmeta{font-size:12px;color:var(--muted);margin-top:4px;}
+  .badge{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;}
+  .badge.active{background:#E4EEE4;color:var(--good);}
+  .badge.inactive{background:#F3E4E2;color:var(--danger);}
+  .badge.pending{background:var(--surface-2);color:var(--muted);}
+  nav.bottom{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--line);display:flex;max-width:640px;margin:0 auto;}
+  nav.bottom button{flex:1;background:none;border:none;padding:12px 0 10px;font-size:11px;font-weight:600;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:4px;}
+  nav.bottom button .dot{width:6px;height:6px;border-radius:50%;background:transparent;}
+  nav.bottom button.active{color:var(--leather);}
+  nav.bottom button.active .dot{background:var(--leather);}
+  .toast{position:fixed;bottom:84px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 18px;border-radius:24px;font-size:13px;z-index:50;box-shadow:0 4px 16px rgba(0,0,0,0.2);max-width:90%;text-align:center;}
+  .loading-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:14px;}
+  #suspended-screen{min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:40px 28px;max-width:420px;margin:0 auto;}
+  .susp-icon{width:72px;height:72px;border-radius:18px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-size:34px;margin-bottom:24px;}
+  .susp-title{font-size:24px;line-height:1.3;margin-bottom:16px;}
+  .susp-sub{color:var(--muted);font-size:14px;line-height:1.5;margin-bottom:22px;}
+  .susp-note{background:#FBF3D6;color:#7A5E10;font-size:13px;padding:14px 16px;border-radius:var(--radius);margin-bottom:22px;line-height:1.5;text-align:left;}
+  #suspended-screen .btn-primary, #suspended-screen .btn-secondary{max-width:340px;}
+</style>
+</head>
+<body>
+<div id="loading" class="loading-screen">Loading…</div>
+
+<!-- AUTH SCREEN -->
+<div id="auth-screen" class="hidden">
+  <div class="brand"><div class="mark"></div><h1>Ledger</h1></div>
+  <p class="tagline">Stock and sales, always in sync.</p>
+  <div class="tabs">
+    <button class="tab-btn active" id="tab-login" onclick="setAuthTab('login')">Log in</button>
+    <button class="tab-btn" id="tab-signup" onclick="setAuthTab('signup')">Sign up</button>
+  </div>
+  <div id="auth-error" class="auth-error hidden"></div>
+
+  <form id="login-form">
+    <div class="tabs" style="margin-bottom:16px;">
+      <button type="button" class="tab-btn active" id="login-method-email" onclick="setLoginMethod('email')">Email</button>
+      <button type="button" class="tab-btn" id="login-method-phone" onclick="setLoginMethod('phone')">Phone number</button>
+    </div>
+    <div class="field" id="login-email-field"><label>Email</label><input type="email" id="login-email" required autocomplete="username"></div>
+    <div class="field hidden" id="login-phone-field"><label>Phone number</label><input type="tel" id="login-phone" placeholder="+251912345678" autocomplete="tel"></div>
+    <div class="field"><label>Password</label><input type="password" id="login-password" required autocomplete="current-password"></div>
+    <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);margin:-6px 0 14px;">
+      <input type="checkbox" id="login-remember" checked style="width:auto;"> Stay signed in on this device
+    </label>
+    <button type="submit" class="btn-primary" id="login-btn">Log in</button>
+    <button type="button" class="link-btn" style="display:block;margin:14px auto 0;" onclick="doForgotPassword()">Forgot password?</button>
+  </form>
+
+  <form id="signup-form" class="hidden">
+    <div class="field"><label>Your name</label><input type="text" id="signup-name" required autocomplete="name"></div>
+    <div class="tabs" style="margin-bottom:16px;">
+      <button type="button" class="tab-btn active" id="signup-method-email" onclick="setSignupMethod('email')">Email</button>
+      <button type="button" class="tab-btn" id="signup-method-phone" onclick="setSignupMethod('phone')">Phone number</button>
+    </div>
+    <div class="field" id="signup-email-field"><label>Email</label><input type="email" id="signup-email" required autocomplete="username"></div>
+    <div class="field hidden" id="signup-phone-field"><label>Phone number</label><input type="tel" id="signup-phone" placeholder="+251912345678" autocomplete="tel"></div>
+    <div class="field"><label>Password (min 6 characters)</label><input type="password" id="signup-password" required minlength="6" autocomplete="new-password"></div>
+    <div class="field"><label>Access code</label><input type="text" id="signup-code" required placeholder="Given to you by your admin or owner"></div>
+    <button type="submit" class="btn-primary" id="signup-btn">Create account</button>
+    <p class="auth-note">Sign-up requires an access code. Business owners get a code from the platform admin; employees get a code from their shop owner. Phone number accounts can't receive password-reset emails — contact your admin/owner if you forget your password.</p>
+  </form>
+</div>
+
+<!-- SUSPENDED SCREEN -->
+<div id="suspended-screen" class="hidden">
+  <div class="susp-icon">🔒</div>
+  <h1 class="susp-title">Your account is temporarily suspended 🔒</h1>
+  <p class="susp-sub">Your subscription payment is overdue. Please complete your payment to restore access.</p>
+  <div class="susp-note">🛡️ Your business data is safe and has not been deleted.</div>
+  <button class="btn-primary" onclick="window.location.href='tel:+251912606642'">Contact Admin / Support</button>
+  <button class="btn-secondary" style="margin-top:10px;" onclick="location.reload()">Try Again</button>
+</div>
+
+<!-- APP SCREEN -->
+<div id="app-screen" class="hidden">
+  <header class="top">
+    <div class="row1">
+      <div class="who">Signed in as <b id="who-name"></b> · <span id="who-role"></span></div>
+      <button class="signout" onclick="doSignOut()">Sign out</button>
+    </div>
+    <h2 id="app-title">Dashboard</h2>
+  </header>
+
+  <!-- ADMIN -->
+  <main id="main-admin" class="hidden">
+    <div class="section-title">Create a new business</div>
+    <div class="card">
+      <form id="business-form">
+        <div class="field"><label>Business name</label><input type="text" id="biz-name" required placeholder="e.g. Abebe Shoe Shop"></div>
+        <button type="submit" class="btn-primary">Create business + owner code</button>
+      </form>
+    </div>
+    <div id="new-code-box" class="hidden">
+      <div class="section-title">New owner access code — give this to the business owner</div>
+      <div class="code-box"><div class="code" id="new-code-text"></div><div class="cmeta">One-time use</div></div>
+    </div>
+    <div class="section-title">All businesses</div>
+    <div class="card">
+      <table>
+        <thead><tr><th>Name</th><th>Status</th><th>Owner code</th></tr></thead>
+        <tbody id="admin-biz-table"></tbody>
+      </table>
+      <div id="admin-biz-empty" class="empty hidden">No businesses yet — create one above.</div>
+    </div>
+  </main>
+
+  <!-- OWNER -->
+  <main id="main-owner" class="hidden">
+    <div class="stat-grid">
+      <div class="stat-card"><div class="num" id="stat-items-today">0</div><div class="lbl">Items sold today</div></div>
+      <div class="stat-card"><div class="num" id="stat-revenue-today">0</div><div class="lbl">Revenue today (birr)</div></div>
+      <div class="stat-card profit"><div class="num" id="stat-profit-today">0</div><div class="lbl">Profit today (birr)</div></div>
+      <div class="stat-card profit"><div class="num" id="stat-profit-month">0</div><div class="lbl">Profit this month (birr)</div></div>
+    </div>
+
+    <div id="view-stock" class="owner-view">
+      <div class="section-title">Add or restock a shoe</div>
+      <div class="card">
+        <form id="product-form">
+          <div class="grid2">
+            <div class="field"><label>Shoe code</label><input type="text" id="p-code" placeholder="SH001" required></div>
+            <div class="field"><label>Name</label><input type="text" id="p-name" placeholder="Black Chelsea" required></div>
+          </div>
+          <div class="grid2">
+            <div class="field"><label>Pairs to add</label><input type="number" id="p-qty" min="1" required></div>
+            <div class="field"><label>Cost per pair (birr)</label><input type="number" id="p-cost" min="0" step="0.01" required></div>
+          </div>
+          <button type="submit" class="btn-primary">Save to stock</button>
+        </form>
+      </div>
+      <div class="section-title">Current stock</div>
+      <div class="card">
+        <table><thead><tr><th>Code</th><th>Name</th><th class="num-col">Stock</th><th class="num-col">Cost</th><th></th></tr></thead><tbody id="stock-table"></tbody></table>
+        <div id="stock-empty" class="empty hidden">No shoes in stock yet — add your first one above.</div>
+      </div>
+    </div>
+
+    <div id="view-sales" class="owner-view hidden">
+      <div class="section-title">Sales log</div>
+      <div class="card">
+        <table><thead><tr><th>Code</th><th class="num-col">Qty</th><th class="num-col">Price</th><th class="num-col">Profit</th><th>By</th><th></th></tr></thead><tbody id="sales-table"></tbody></table>
+        <div id="sales-empty" class="empty hidden">No sales recorded yet.</div>
+      </div>
+    </div>
+
+    <div id="view-employees" class="owner-view hidden">
+      <div class="section-title">Invite an employee</div>
+      <div class="card">
+        <button class="btn-primary" onclick="generateEmployeeCode()">Generate employee code</button>
+      </div>
+      <div id="new-emp-code-box" class="hidden">
+        <div class="code-box"><div class="code" id="new-emp-code-text"></div><div class="cmeta">One-time use</div></div>
+      </div>
+      <div class="section-title">Invite codes</div>
+      <div class="card">
+        <table><thead><tr><th>Code</th><th>Status</th></tr></thead><tbody id="emp-invites-table"></tbody></table>
+        <div id="emp-invites-empty" class="empty hidden">No employee codes yet.</div>
+      </div>
+      <div class="section-title">Employees</div>
+      <div class="card">
+        <table><thead><tr><th>Name</th><th>Email</th></tr></thead><tbody id="emp-list-table"></tbody></table>
+        <div id="emp-list-empty" class="empty hidden">No employees yet.</div>
+      </div>
+    </div>
+
+    <div id="view-settings" class="owner-view hidden">
+      <div class="section-title">Personal profile</div>
+      <div class="card">
+        <form id="personal-profile-form">
+          <div class="field"><label>Full name</label><input type="text" id="pp-name" required></div>
+          <div class="field"><label>Phone number</label><input type="tel" id="pp-phone" placeholder="+251912345678"></div>
+          <div class="field"><label>Email (login)</label><input type="text" id="pp-email" disabled style="opacity:0.6;"></div>
+          <button type="submit" class="btn-primary">Save personal profile</button>
+        </form>
+      </div>
+      <div class="card">
+        <h3>Password &amp; security</h3>
+        <button type="button" class="btn-secondary" onclick="togglePasswordChange()">Change password</button>
+        <form id="password-change-form" class="hidden" style="margin-top:14px;">
+          <div class="field"><label>Current password</label><input type="password" id="pc-current" required autocomplete="current-password"></div>
+          <div class="field"><label>New password (min 6 characters)</label><input type="password" id="pc-new" required minlength="6" autocomplete="new-password"></div>
+          <button type="submit" class="btn-primary">Update password</button>
+        </form>
+      </div>
+
+      <div class="section-title">Business profile</div>
+      <div class="card">
+        <form id="business-profile-form">
+          <div class="field"><label>Business name</label><input type="text" id="bp-name" required></div>
+          <div class="field"><label>Business type</label>
+            <select id="bp-type">
+              <option value="shoe">🛍️ Shoe Shop</option>
+              <option value="cosmetic">💄 Cosmetic Shop</option>
+              <option value="perfume">🌸 Perfume Shop</option>
+              <option value="book">📚 Book Shop</option>
+              <option value="stationery">✏️ Stationery Shop</option>
+              <option value="importer">📦 Importer Shop</option>
+              <option value="other">➕ Other</option>
+            </select>
+          </div>
+          <div class="field"><label>Business location</label><input type="text" id="bp-location" placeholder="e.g. Bole, Addis Ababa"></div>
+          <div class="field"><label>Business phone</label><input type="tel" id="bp-phone" placeholder="+251912345678"></div>
+          <div class="field"><label>Business email</label><input type="email" id="bp-email"></div>
+          <button type="submit" class="btn-primary">Save business profile</button>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <!-- EMPLOYEE -->
+  <main id="main-employee" class="hidden">
+    <div class="stat-grid">
+      <div class="stat-card"><div class="num" id="emp-stat-items">0</div><div class="lbl">Items sold today</div></div>
+      <div class="stat-card"><div class="num" id="emp-stat-revenue">0</div><div class="lbl">Shop revenue today (birr)</div></div>
+    </div>
+    <div id="view-sell" class="employee-view">
+      <div class="section-title">Find a shoe</div>
+      <div class="search-row"><input type="text" id="emp-search" placeholder="Search by code or name"></div>
+      <div id="product-list"></div>
+      <div id="product-list-empty" class="empty hidden">No shoes in stock right now.</div>
+      <div id="sell-panel" class="card hidden">
+        <h3 id="sell-panel-title"></h3>
+        <div class="grid2">
+          <div class="field"><label>Quantity sold</label><input type="number" id="sell-qty" min="1" value="1"></div>
+          <div class="field"><label>Selling price / pair (birr)</label><input type="number" id="sell-price" min="0" step="0.01"></div>
+        </div>
+        <button class="btn-primary" id="sell-btn" onclick="submitSale()">Record sale</button>
+      </div>
+    </div>
+    <div id="view-mysales" class="employee-view hidden">
+      <div class="section-title">Sales you recorded today</div>
+      <div class="card">
+        <table><thead><tr><th>Code</th><th class="num-col">Qty</th><th class="num-col">Price</th><th class="num-col">Total</th><th></th></tr></thead><tbody id="mysales-table"></tbody></table>
+        <div id="mysales-empty" class="empty hidden">You haven't recorded any sales today.</div>
+      </div>
+    </div>
+  </main>
+
+  <nav class="bottom hidden" id="owner-nav">
+    <button class="active" data-view="stock" onclick="showOwnerView('stock')"><span class="dot"></span>Stock</button>
+    <button data-view="sales" onclick="showOwnerView('sales')"><span class="dot"></span>Sales log</button>
+    <button data-view="employees" onclick="showOwnerView('employees')"><span class="dot"></span>Employees</button>
+    <button data-view="settings" onclick="showOwnerView('settings')"><span class="dot"></span>Settings</button>
+  </nav>
+  <nav class="bottom hidden" id="employee-nav">
+    <button class="active" data-view="sell" onclick="showEmployeeView('sell')"><span class="dot"></span>Sell</button>
+    <button data-view="mysales" onclick="showEmployeeView('mysales')"><span class="dot"></span>My sales</button>
+  </nav>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyBXyCaKn8oKaAwcpDZRdXa2DkJTBl4hLeU",
+  authDomain: "sales-management-system-44913.firebaseapp.com",
+  projectId: "sales-management-system-44913",
+  storageBucket: "sales-management-system-44913.firebasestorage.app",
+  messagingSenderId: "371864004329",
+  appId: "1:371864004329:web:6cb246dfac1f5a55323278"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+let currentUser = null; // {uid,name,role,businessId}
+let products = [], allSales = [], selectedProductCode = null;
+let unsubProducts=null, unsubSales=null, unsubBiz=null, unsubInvites=null, unsubEmployees=null;
+
+function randomCode(len=7){
+  const chars='ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  let out='';
+  for(let i=0;i<len;i++) out += chars[Math.floor(Math.random()*chars.length)];
+  return out;
+}
+
+function setAuthTab(which){
+  document.getElementById('tab-login').classList.toggle('active', which==='login');
+  document.getElementById('tab-signup').classList.toggle('active', which==='signup');
+  document.getElementById('login-form').classList.toggle('hidden', which!=='login');
+  document.getElementById('signup-form').classList.toggle('hidden', which!=='signup');
+  hideAuthError();
+}
+function showAuthError(msg){ const el=document.getElementById('auth-error'); el.textContent=msg; el.classList.remove('hidden'); }
+function hideAuthError(){ document.getElementById('auth-error').classList.add('hidden'); }
+
+let loginMethod='email', signupMethod='email';
+function setLoginMethod(m){
+  loginMethod=m;
+  document.getElementById('login-method-email').classList.toggle('active', m==='email');
+  document.getElementById('login-method-phone').classList.toggle('active', m==='phone');
+  document.getElementById('login-email-field').classList.toggle('hidden', m!=='email');
+  document.getElementById('login-phone-field').classList.toggle('hidden', m!=='phone');
+  document.getElementById('login-email').required = (m==='email');
+  document.getElementById('login-phone').required = (m==='phone');
+  hideAuthError();
+}
+function setSignupMethod(m){
+  signupMethod=m;
+  document.getElementById('signup-method-email').classList.toggle('active', m==='email');
+  document.getElementById('signup-method-phone').classList.toggle('active', m==='phone');
+  document.getElementById('signup-email-field').classList.toggle('hidden', m!=='email');
+  document.getElementById('signup-phone-field').classList.toggle('hidden', m!=='phone');
+  document.getElementById('signup-email').required = (m==='email');
+  document.getElementById('signup-phone').required = (m==='phone');
+  hideAuthError();
+}
+function normalizePhone(raw){ return raw.trim().replace(/\s+/g,''); }
+function phoneValid(p){ return /^\+251\d{8,9}$/.test(p); }
+function phoneToAuthEmail(phone){ return phone.replace('+','') + '@phone.ledgerapp.local'; }
+
+async function doForgotPassword(){
+  hideAuthError();
+  if(loginMethod==='phone'){
+    showAuthError('Phone number accounts can\'t receive reset emails. Please contact your admin or shop owner to reset your password.');
+    return;
+  }
+  const email = document.getElementById('login-email').value.trim();
+  if(!email){ showAuthError('Enter your email above first, then tap "Forgot password?"'); return; }
+  try{
+    await auth.sendPasswordResetEmail(email);
+    showAuthError('Password reset email sent — check your inbox.');
+  }catch(err){ showAuthError(friendlyAuthError(err)); }
+}
+
+document.getElementById('login-form').addEventListener('submit', async (e)=>{
+  e.preventDefault(); hideAuthError();
+  let authEmail;
+  if(loginMethod==='phone'){
+    const phone = normalizePhone(document.getElementById('login-phone').value);
+    if(!phoneValid(phone)){ showAuthError('Enter a valid phone number starting with +251'); return; }
+    authEmail = phoneToAuthEmail(phone);
+  }else{
+    authEmail = document.getElementById('login-email').value.trim();
+  }
+  const password=document.getElementById('login-password').value;
+  const remember = document.getElementById('login-remember').checked;
+  const btn=document.getElementById('login-btn'); btn.disabled=true; btn.textContent='Logging in…';
+  try{
+    await auth.setPersistence(remember ? firebase.auth.Auth.Persistence.LOCAL : firebase.auth.Auth.Persistence.SESSION);
+    await auth.signInWithEmailAndPassword(authEmail,password);
+  }
+  catch(err){ showAuthError(friendlyAuthError(err)); }
+  btn.disabled=false; btn.textContent='Log in';
+});
+
+let signupInProgress = false;
+document.getElementById('signup-form').addEventListener('submit', async (e)=>{
+  e.preventDefault(); hideAuthError();
+  const name=document.getElementById('signup-name').value.trim();
+  let authEmail, emailVal=null, phoneVal=null;
+  if(signupMethod==='phone'){
+    const phone = normalizePhone(document.getElementById('signup-phone').value);
+    if(!phoneValid(phone)){ showAuthError('Enter a valid phone number starting with +251'); return; }
+    authEmail = phoneToAuthEmail(phone);
+    phoneVal = phone;
+  }else{
+    emailVal = document.getElementById('signup-email').value.trim();
+    authEmail = emailVal;
+  }
+  const password=document.getElementById('signup-password').value;
+  const code=document.getElementById('signup-code').value.trim().toUpperCase();
+  const btn=document.getElementById('signup-btn'); btn.disabled=true; btn.textContent='Checking code…';
+  signupInProgress = true;
+  let cred=null;
+  try{
+    cred = await auth.createUserWithEmailAndPassword(authEmail,password);
+    const inviteRef = db.collection('invites').doc(code);
+    const inviteSnap = await inviteRef.get();
+    if(!inviteSnap.exists || inviteSnap.data().used){
+      await cred.user.delete();
+      signupInProgress = false;
+      showAuthError('That access code is invalid or has already been used.');
+      btn.disabled=false; btn.textContent='Create account';
+      return;
+    }
+    const invite = inviteSnap.data();
+    const batch = db.batch();
+    batch.set(db.collection('users').doc(cred.user.uid), {
+      name, email: emailVal, phone: phoneVal, role: invite.role, businessId: invite.businessId || null,
+      inviteCode: code, active:true, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    batch.update(inviteRef, { used:true, usedByUid: cred.user.uid, usedAt: firebase.firestore.FieldValue.serverTimestamp() });
+    await batch.commit();
+    signupInProgress = false;
+  }catch(err){
+    signupInProgress = false;
+    if(cred && cred.user){ try{ await cred.user.delete(); }catch(e){} }
+    showAuthError(friendlyAuthError(err));
+    btn.disabled=false; btn.textContent='Create account';
+  }
+});
+
+function friendlyAuthError(err){
+  const map={
+    'auth/email-already-in-use':'That email already has an account — try logging in instead.',
+    'auth/invalid-email':'That email address looks invalid.',
+    'auth/weak-password':'Password should be at least 6 characters.',
+    'auth/wrong-password':'Incorrect password.',
+    'auth/user-not-found':'No account found with that email.',
+    'auth/invalid-credential':'Incorrect email or password.',
+    'auth/unauthorized-domain':'This domain isn\'t authorized in Firebase yet.'
+  };
+  return map[err.code] || err.message;
+}
+function doSignOut(){ auth.signOut(); }
+
+auth.onAuthStateChanged(async (user)=>{
+  document.getElementById('loading').classList.add('hidden');
+  if(!user){
+    currentUser=null; detachAll();
+    if(!document.getElementById('suspended-screen').classList.contains('hidden')) return;
+    document.getElementById('app-screen').classList.add('hidden');
+    document.getElementById('auth-screen').classList.remove('hidden');
+    return;
+  }
+  if(signupInProgress) return;
+  let doc = await db.collection('users').doc(user.uid).get();
+  if(!doc.exists){
+    await new Promise(r=>setTimeout(r,700));
+    doc = await db.collection('users').doc(user.uid).get();
+  }
+  if(!doc.exists){ showToast('Account setup incomplete — signing out.'); auth.signOut(); return; }
+  const p = doc.data();
+  currentUser = { uid:user.uid, name:p.name, role:p.role, businessId:p.businessId||null };
+
+  if(currentUser.role !== 'admin' && currentUser.businessId){
+    const bizDoc = await db.collection('businesses').doc(currentUser.businessId).get();
+    if(!bizDoc.exists || bizDoc.data().active === false){
+      currentUser = null;
+      document.getElementById('auth-screen').classList.add('hidden');
+      document.getElementById('app-screen').classList.add('hidden');
+      document.getElementById('suspended-screen').classList.remove('hidden');
+      auth.signOut();
+      return;
+    }
+  }
+
+  document.getElementById('auth-screen').classList.add('hidden');
+  document.getElementById('app-screen').classList.remove('hidden');
+  document.getElementById('who-name').textContent = currentUser.name;
+  document.getElementById('who-role').textContent = currentUser.role.charAt(0).toUpperCase()+currentUser.role.slice(1);
+  document.getElementById('app-title').textContent = currentUser.role==='admin' ? 'Platform Admin' : currentUser.role==='owner' ? 'Dashboard' : 'Sell shoes';
+
+  document.getElementById('main-admin').classList.toggle('hidden', currentUser.role!=='admin');
+  document.getElementById('main-owner').classList.toggle('hidden', currentUser.role!=='owner');
+  document.getElementById('main-employee').classList.toggle('hidden', currentUser.role!=='employee');
+  document.getElementById('owner-nav').classList.toggle('hidden', currentUser.role!=='owner');
+  document.getElementById('employee-nav').classList.toggle('hidden', currentUser.role!=='employee');
+
+  attachListeners();
+});
+
+function detachAll(){
+  [unsubProducts,unsubSales,unsubBiz,unsubInvites,unsubEmployees].forEach(u=>{ if(u) u(); });
+  unsubProducts=unsubSales=unsubBiz=unsubInvites=unsubEmployees=null;
+  products=[]; allSales=[];
+}
+
+function attachListeners(){
+  detachAll();
+  if(currentUser.role==='admin'){
+    unsubBiz = db.collection('businesses').onSnapshot(snap=>{
+      const list = snap.docs.map(d=>({id:d.id,...d.data()}));
+      renderAdminBiz(list);
+    });
+  } else if(currentUser.businessId){
+    const bizRef = db.collection('businesses').doc(currentUser.businessId);
+    unsubProducts = bizRef.collection('products').onSnapshot(snap=>{
+      products = snap.docs.map(d=>({code:d.id,...d.data()})).sort((a,b)=>a.code.localeCompare(b.code));
+      renderStockTable(); renderProductList();
+    });
+    unsubSales = bizRef.collection('sales').orderBy('ts','desc').limit(200).onSnapshot(snap=>{
+      allSales = snap.docs.map(d=>({id:d.id,...d.data()}));
+      renderSalesTable(); renderStats(); renderMySales(); renderEmployeeStats();
+    });
+    if(currentUser.role==='owner'){
+      unsubInvites = db.collection('invites').onSnapshot(snap=>{
+        const mine = snap.docs.map(d=>({code:d.id,...d.data()})).filter(i=>i.role==='employee' && i.businessId===currentUser.businessId);
+        renderEmpInvites(mine);
+      });
+      unsubEmployees = db.collection('users').onSnapshot(snap=>{
+        const emps = snap.docs.map(d=>({uid:d.id,...d.data()})).filter(u=>u.role==='employee' && u.businessId===currentUser.businessId);
+        renderEmpList(emps);
+      });
+    }
+  }
+}
+
+function todayKey(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function monthKey(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
+function money(n){ return Number(n||0).toLocaleString(undefined,{maximumFractionDigits:2}); }
+function escapeHtml(str){ return String(str??'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+let toastTimer=null;
+function showToast(msg){ const el=document.getElementById('toast'); el.textContent=msg; el.classList.remove('hidden'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.add('hidden'),3200); }
+
+/* ---------- ADMIN ---------- */
+document.getElementById('business-form').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const name = document.getElementById('biz-name').value.trim();
+  if(!name) return;
+  try{
+    const bizRef = await db.collection('businesses').add({ name, active:true, ownerUid:null, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+    const code = randomCode();
+    await db.collection('invites').doc(code).set({ role:'owner', businessId: bizRef.id, used:false, createdBy: currentUser.uid, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+    document.getElementById('new-code-box').classList.remove('hidden');
+    document.getElementById('new-code-text').textContent = code;
+    e.target.reset();
+    showToast('Business created — give the code to the owner');
+  }catch(err){ showToast('Could not create: '+err.message); }
+});
+
+function renderAdminBiz(list){
+  const tbody = document.getElementById('admin-biz-table');
+  tbody.innerHTML='';
+  document.getElementById('admin-biz-empty').classList.toggle('hidden', list.length>0);
+  db.collection('invites').get().then(inviteSnap=>{
+    const invites = inviteSnap.docs.map(d=>({code:d.id,...d.data()}));
+    list.forEach(b=>{
+      const ownerInvite = invites.find(i=>i.role==='owner' && i.businessId===b.id);
+      const codeText = ownerInvite ? (ownerInvite.used ? 'used' : ownerInvite.code) : '—';
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${escapeHtml(b.name)}</td>
+        <td><span class="badge ${b.active?'active':'inactive'}">${b.active?'Active':'Inactive'}</span>
+          <button class="btn-secondary" style="width:auto;padding:4px 10px;font-size:11px;margin-left:6px;" onclick="toggleBiz('${b.id}',${!b.active})">${b.active?'Suspend':'Activate'}</button>
+        </td>
+        <td>${codeText}</td>`;
+      tbody.appendChild(tr);
+    });
+  });
+}
+async function toggleBiz(id, newActive){
+  try{ await db.collection('businesses').doc(id).update({active:newActive}); showToast(newActive?'Business activated':'Business suspended'); }
+  catch(err){ showToast('Could not update: '+err.message); }
+}
+
+/* ---------- OWNER: stock ---------- */
+function renderStockTable(){
+  const tbody = document.getElementById('stock-table'); tbody.innerHTML='';
+  document.getElementById('stock-empty').classList.toggle('hidden', products.length>0);
+  products.forEach(p=>{
+    const low = p.stock<=3;
+    const tr = document.createElement('tr');
+    const editCell = currentUser && currentUser.role==='owner' ? `<button class="link-btn" onclick="editProduct('${p.code}')">Edit</button>` : '';
+    tr.innerHTML = `<td>${escapeHtml(p.code)}</td><td>${escapeHtml(p.name)}</td><td class="num-col ${low?'low-stock':''}">${p.stock}</td><td class="num-col">${money(p.cost)}</td><td>${editCell}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+async function editProduct(code){
+  const p = products.find(x=>x.code===code);
+  if(!p) return;
+  const newCodeRaw = prompt('Shoe code:', p.code);
+  if(newCodeRaw===null) return;
+  const newCode = newCodeRaw.trim().toUpperCase();
+  const newName = prompt('Shoe name:', p.name);
+  if(newName===null) return;
+  const newCostStr = prompt('Cost per pair (birr):', p.cost);
+  if(newCostStr===null) return;
+  const newCost = Number(newCostStr);
+  if(!newCode || !newName.trim() || isNaN(newCost) || newCost<0){ showToast('Enter valid values'); return; }
+  const bizRef = db.collection('businesses').doc(currentUser.businessId);
+  const oldRef = bizRef.collection('products').doc(code);
+  try{
+    if(newCode === code){
+      await oldRef.update({ name:newName.trim(), cost:newCost });
+      showToast(`Updated ${code}`);
+      return;
+    }
+    const newRef = bizRef.collection('products').doc(newCode);
+    await db.runTransaction(async tx=>{
+      const oldDoc = await tx.get(oldRef);
+      const newDoc = await tx.get(newRef);
+      if(newDoc.exists) throw new Error(`Code ${newCode} is already used by another shoe.`);
+      const data = oldDoc.exists ? oldDoc.data() : {};
+      tx.set(newRef, { ...data, name:newName.trim(), cost:newCost });
+      tx.delete(oldRef);
+    });
+    showToast(`Renamed ${code} to ${newCode}`);
+  }catch(err){ showToast('Could not update: '+err.message); }
+}
+function renderSalesTable(){
+  const tbody = document.getElementById('sales-table'); tbody.innerHTML='';
+  document.getElementById('sales-empty').classList.toggle('hidden', allSales.length>0);
+  allSales.slice(0,100).forEach(s=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML = `<td>${escapeHtml(s.code)}</td><td class="num-col">${s.qty}</td><td class="num-col">${money(s.price)}</td><td class="num-col">${money(s.profit)}</td><td>${escapeHtml(s.employeeName||'')}</td><td><button class="link-btn" onclick='editSale(${JSON.stringify(s)})'>Edit</button> <button class="link-btn danger" onclick='deleteSale(${JSON.stringify(s)})'>Delete</button></td>`;
+    tbody.appendChild(tr);
+  });
+}
+async function editSale(sale){
+  const newCodeRaw = prompt('Shoe code:', sale.code);
+  if(newCodeRaw===null) return;
+  const newCode = newCodeRaw.trim().toUpperCase();
+  const newQtyStr = prompt('Quantity sold:', sale.qty);
+  if(newQtyStr===null) return;
+  const newPriceStr = prompt('Selling price per pair (birr):', sale.price);
+  if(newPriceStr===null) return;
+  const newQty = Number(newQtyStr), newPrice = Number(newPriceStr);
+  if(!newCode || !newQty || newQty<=0 || isNaN(newPrice) || newPrice<0){ showToast('Enter valid values'); return; }
+  const bizRef = db.collection('businesses').doc(currentUser.businessId);
+  const saleRef = bizRef.collection('sales').doc(sale.id);
+  try{
+    if(newCode === sale.code){
+      const productRef = bizRef.collection('products').doc(sale.code);
+      await db.runTransaction(async tx=>{
+        const pDoc = await tx.get(productRef);
+        const currentStock = pDoc.exists ? pDoc.data().stock : 0;
+        const cost = pDoc.exists ? (pDoc.data().cost||0) : 0;
+        const newStock = currentStock + (sale.qty - newQty);
+        if(newStock < 0) throw new Error('Not enough stock to increase this sale.');
+        const revenue = newQty*newPrice, profit = revenue - newQty*cost;
+        tx.update(productRef, { stock:newStock });
+        tx.update(saleRef, { qty:newQty, price:newPrice, revenue, profit });
+      });
+    }else{
+      const oldProductRef = bizRef.collection('products').doc(sale.code);
+      const newProductRef = bizRef.collection('products').doc(newCode);
+      await db.runTransaction(async tx=>{
+        const oldDoc = await tx.get(oldProductRef);
+        const newDoc = await tx.get(newProductRef);
+        if(!newDoc.exists) throw new Error(`No shoe with code ${newCode} found.`);
+        const oldStock = oldDoc.exists ? oldDoc.data().stock : 0;
+        const newStock = newDoc.data().stock;
+        const newCost = newDoc.data().cost || 0;
+        if(newStock < newQty) throw new Error(`Only ${newStock} pair(s) of ${newCode} in stock.`);
+        const revenue = newQty*newPrice, profit = revenue - newQty*newCost;
+        tx.update(oldProductRef, { stock: oldStock + sale.qty });
+        tx.update(newProductRef, { stock: newStock - newQty });
+        tx.update(saleRef, { code:newCode, name:newDoc.data().name, qty:newQty, price:newPrice, revenue, profit });
+      });
+    }
+    showToast('Sale updated');
+  }catch(err){ showToast('Could not update: '+err.message); }
+}
+async function deleteSale(sale){
+  if(!confirm('Delete this sale? The stock will be added back automatically.')) return;
+  const bizRef = db.collection('businesses').doc(currentUser.businessId);
+  const productRef = bizRef.collection('products').doc(sale.code);
+  const saleRef = bizRef.collection('sales').doc(sale.id);
+  try{
+    await db.runTransaction(async tx=>{
+      const pDoc = await tx.get(productRef);
+      const currentStock = pDoc.exists ? pDoc.data().stock : 0;
+      tx.update(productRef, { stock: currentStock + sale.qty });
+      tx.delete(saleRef);
+    });
+    showToast('Sale deleted — stock restored');
+  }catch(err){ showToast('Could not delete: '+err.message); }
+}
+function renderStats(){
+  const tk=todayKey(), mk=monthKey();
+  let itemsToday=0, revToday=0, profitToday=0, profitMonth=0;
+  allSales.forEach(s=>{
+    if(s.dateKey===tk){ itemsToday+=s.qty; revToday+=s.revenue; profitToday+=s.profit; }
+    if(s.monthKey===mk){ profitMonth+=s.profit; }
+  });
+  const a=document.getElementById('stat-items-today'); if(a) a.textContent=itemsToday;
+  const b=document.getElementById('stat-revenue-today'); if(b) b.textContent=money(revToday);
+  const c=document.getElementById('stat-profit-today'); if(c) c.textContent=money(profitToday);
+  const d=document.getElementById('stat-profit-month'); if(d) d.textContent=money(profitMonth);
+}
+function renderEmployeeStats(){
+  if(!currentUser || currentUser.role!=='employee') return;
+  const tk=todayKey(); let items=0, rev=0;
+  allSales.forEach(s=>{ if(s.dateKey===tk){ items+=s.qty; rev+=s.revenue; } });
+  document.getElementById('emp-stat-items').textContent=items;
+  document.getElementById('emp-stat-revenue').textContent=money(rev);
+}
+
+document.getElementById('product-form').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const code=document.getElementById('p-code').value.trim().toUpperCase();
+  const name=document.getElementById('p-name').value.trim();
+  const qty=Number(document.getElementById('p-qty').value);
+  const cost=Number(document.getElementById('p-cost').value);
+  if(!code||!name||qty<=0) return;
+  const ref = db.collection('businesses').doc(currentUser.businessId).collection('products').doc(code);
+  try{
+    await db.runTransaction(async tx=>{
+      const doc = await tx.get(ref);
+      if(doc.exists){ tx.update(ref, { stock: firebase.firestore.FieldValue.increment(qty), name, cost }); }
+      else{ tx.set(ref, { name, stock:qty, cost, createdAt: firebase.firestore.FieldValue.serverTimestamp() }); }
+    });
+    showToast(`Saved ${qty} pair(s) of ${code} to stock`);
+    e.target.reset();
+  }catch(err){ showToast('Could not save: '+err.message); }
+});
+
+function showOwnerView(view){
+  document.querySelectorAll('#owner-nav button').forEach(b=>b.classList.toggle('active', b.dataset.view===view));
+  document.getElementById('view-stock').classList.toggle('hidden', view!=='stock');
+  document.getElementById('view-sales').classList.toggle('hidden', view!=='sales');
+  document.getElementById('view-employees').classList.toggle('hidden', view!=='employees');
+  document.getElementById('view-settings').classList.toggle('hidden', view!=='settings');
+  if(view==='settings') loadSettings();
+}
+
+async function loadSettings(){
+  document.getElementById('pp-name').value = currentUser.name || '';
+  document.getElementById('pp-email').value = auth.currentUser.email.endsWith('@phone.ledgerapp.local')
+    ? '(signed up with phone number)' : auth.currentUser.email;
+  try{
+    const uDoc = await db.collection('users').doc(currentUser.uid).get();
+    document.getElementById('pp-phone').value = (uDoc.exists && uDoc.data().phone) || '';
+  }catch(e){}
+  try{
+    const bDoc = await db.collection('businesses').doc(currentUser.businessId).get();
+    if(bDoc.exists){
+      const b = bDoc.data();
+      document.getElementById('bp-name').value = b.name || '';
+      document.getElementById('bp-type').value = b.type || 'shoe';
+      document.getElementById('bp-location').value = b.location || '';
+      document.getElementById('bp-phone').value = b.contactPhone || '';
+      document.getElementById('bp-email').value = b.contactEmail || '';
+    }
+  }catch(e){}
+}
+
+document.getElementById('personal-profile-form').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const name = document.getElementById('pp-name').value.trim();
+  const phone = document.getElementById('pp-phone').value.trim();
+  if(!name){ showToast('Enter your name'); return; }
+  try{
+    await db.collection('users').doc(currentUser.uid).update({ name, phone });
+    currentUser.name = name;
+    document.getElementById('who-name').textContent = name;
+    showToast('Personal profile saved');
+  }catch(err){ showToast('Could not save: '+err.message); }
+});
+
+function togglePasswordChange(){
+  document.getElementById('password-change-form').classList.toggle('hidden');
+}
+document.getElementById('password-change-form').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const currentPassword = document.getElementById('pc-current').value;
+  const newPassword = document.getElementById('pc-new').value;
+  try{
+    const cred = firebase.auth.EmailAuthProvider.credential(auth.currentUser.email, currentPassword);
+    await auth.currentUser.reauthenticateWithCredential(cred);
+    await auth.currentUser.updatePassword(newPassword);
+    showToast('Password updated');
+    e.target.reset();
+    e.target.classList.add('hidden');
+  }catch(err){ showToast('Could not update password: '+friendlyAuthError(err)); }
+});
+
+document.getElementById('business-profile-form').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const name = document.getElementById('bp-name').value.trim();
+  const type = document.getElementById('bp-type').value;
+  const location = document.getElementById('bp-location').value.trim();
+  const contactPhone = document.getElementById('bp-phone').value.trim();
+  const contactEmail = document.getElementById('bp-email').value.trim();
+  if(!name){ showToast('Enter a business name'); return; }
+  try{
+    await db.collection('businesses').doc(currentUser.businessId).update({ name, type, location, contactPhone, contactEmail });
+    showToast('Business profile saved');
+  }catch(err){ showToast('Could not save: '+err.message); }
+});
+
+/* ---------- OWNER: employees/invites ---------- */
+async function generateEmployeeCode(){
+  const code = randomCode();
+  try{
+    await db.collection('invites').doc(code).set({ role:'employee', businessId: currentUser.businessId, used:false, createdBy: currentUser.uid, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+    document.getElementById('new-emp-code-box').classList.remove('hidden');
+    document.getElementById('new-emp-code-text').textContent = code;
+  }catch(err){ showToast('Could not create code: '+err.message); }
+}
+function renderEmpInvites(list){
+  const tbody=document.getElementById('emp-invites-table'); tbody.innerHTML='';
+  document.getElementById('emp-invites-empty').classList.toggle('hidden', list.length>0);
+  list.forEach(i=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML = `<td>${escapeHtml(i.code)}</td><td><span class="badge ${i.used?'inactive':'pending'}">${i.used?'Used':'Unused'}</span></td>`;
+    tbody.appendChild(tr);
+  });
+}
+function renderEmpList(list){
+  const tbody=document.getElementById('emp-list-table'); tbody.innerHTML='';
+  document.getElementById('emp-list-empty').classList.toggle('hidden', list.length>0);
+  list.forEach(u=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML = `<td>${escapeHtml(u.name)}</td><td>${escapeHtml(u.email || u.phone || '')}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+/* ---------- EMPLOYEE ---------- */
+document.getElementById('emp-search').addEventListener('input', renderProductList);
+function renderProductList(){
+  if(!currentUser || currentUser.role!=='employee'){
+    const listEl=document.getElementById('product-list'); if(listEl) listEl.innerHTML='';
+    return;
+  }
+  const q=(document.getElementById('emp-search').value||'').trim().toLowerCase();
+  const list=document.getElementById('product-list'); list.innerHTML='';
+  const filtered = products.filter(p=>!q||p.code.toLowerCase().includes(q)||p.name.toLowerCase().includes(q));
+  document.getElementById('product-list-empty').classList.toggle('hidden', filtered.length>0);
+  filtered.forEach(p=>{
+    const div=document.createElement('div');
+    div.className='product-pick'+(selectedProductCode===p.code?' selected':'');
+    div.innerHTML = `<div><div class="pname">${escapeHtml(p.name)}</div><div class="pmeta">${escapeHtml(p.code)} · ${p.stock} in stock</div></div>`;
+    div.onclick=()=>selectProduct(p.code);
+    list.appendChild(div);
+  });
+}
+function selectProduct(code){
+  selectedProductCode=code;
+  const p=products.find(x=>x.code===code);
+  renderProductList();
+  const panel=document.getElementById('sell-panel');
+  if(!p){ panel.classList.add('hidden'); return; }
+  panel.classList.remove('hidden');
+  document.getElementById('sell-panel-title').textContent = `${p.name} (${p.code}) — ${p.stock} in stock`;
+  document.getElementById('sell-qty').value=1;
+  document.getElementById('sell-qty').max=p.stock;
+  document.getElementById('sell-price').value='';
+}
+async function submitSale(){
+  const p=products.find(x=>x.code===selectedProductCode);
+  if(!p) return;
+  const qty=Number(document.getElementById('sell-qty').value);
+  const price=Number(document.getElementById('sell-price').value);
+  if(!qty||qty<=0||!price||price<0){ showToast('Enter a valid quantity and price'); return; }
+  const bizRef = db.collection('businesses').doc(currentUser.businessId);
+  const ref = bizRef.collection('products').doc(p.code);
+  const btn=document.getElementById('sell-btn'); btn.disabled=true; btn.textContent='Recording…';
+  try{
+    await db.runTransaction(async tx=>{
+      const doc=await tx.get(ref);
+      const stock=doc.exists?doc.data().stock:0;
+      if(qty>stock) throw new Error(`Only ${stock} pair(s) of ${p.code} left in stock.`);
+      tx.update(ref,{ stock: firebase.firestore.FieldValue.increment(-qty) });
+      const saleRef = bizRef.collection('sales').doc();
+      const revenue=qty*price, profit=revenue-qty*(p.cost||0);
+      tx.set(saleRef,{ code:p.code, name:p.name, qty, price, revenue, profit, employeeId:currentUser.uid, employeeName:currentUser.name, dateKey:todayKey(), monthKey:monthKey(), ts: firebase.firestore.FieldValue.serverTimestamp() });
+    });
+    showToast(`Recorded: ${qty} × ${p.code} at ${money(price)} birr`);
+    document.getElementById('sell-panel').classList.add('hidden');
+    selectedProductCode=null;
+  }catch(err){ showToast(err.message); }
+  btn.disabled=false; btn.textContent='Record sale';
+}
+function renderMySales(){
+  if(!currentUser || currentUser.role!=='employee') return;
+  const tk=todayKey();
+  const mine=allSales.filter(s=>s.employeeId===currentUser.uid && s.dateKey===tk);
+  const tbody=document.getElementById('mysales-table'); tbody.innerHTML='';
+  document.getElementById('mysales-empty').classList.toggle('hidden', mine.length>0);
+  mine.forEach(s=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML = `<td>${escapeHtml(s.code)}</td><td class="num-col">${s.qty}</td><td class="num-col">${money(s.price)}</td><td class="num-col">${money(s.revenue)}</td><td><button class="link-btn" onclick='editSale(${JSON.stringify(s)})'>Edit</button> <button class="link-btn danger" onclick='deleteSale(${JSON.stringify(s)})'>Delete</button></td>`;
+    tbody.appendChild(tr);
+  });
+}
+function showEmployeeView(view){
+  document.querySelectorAll('#employee-nav button').forEach(b=>b.classList.toggle('active', b.dataset.view===view));
+  document.getElementById('view-sell').classList.toggle('hidden', view!=='sell');
+  document.getElementById('view-mysales').classList.toggle('hidden', view!=='mysales');
+}
+</script>
+</body>
+</html>
